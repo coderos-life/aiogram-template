@@ -1,0 +1,106 @@
+name: aiogram-template
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-telegram_bot}
+      POSTGRES_USER: ${DB_USER:-telegram_bot}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-telegram_bot}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_NAME: ${APP_NAME:-Aiogram Bot Template}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-local}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      PARSE_MODE: ${PARSE_MODE:-HTML}
+      DROP_PENDING_UPDATES: ${DROP_PENDING_UPDATES:-True}
+      RATE_LIMIT: ${RATE_LIMIT:-0.5}
+      ADMINS: ${ADMINS:-[]}
+      DEBUG_MODE: ${DEBUG_MODE:-False}
+      DB_USED: ${DB_USED:-PostgreSQL}
+      DB_IP: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-telegram_bot}
+      DB_PASSWORD: ${DB_PASSWORD:-telegram_bot}
+      DB_NAME: ${DB_NAME:-telegram_bot}
+      REDIS_USE: ${REDIS_USE:-False}
+      REDIS_IP: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles:
+      - api
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_NAME: ${APP_NAME:-Aiogram Bot Template}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-local}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      PARSE_MODE: ${PARSE_MODE:-HTML}
+      DROP_PENDING_UPDATES: ${DROP_PENDING_UPDATES:-True}
+      RATE_LIMIT: ${RATE_LIMIT:-0.5}
+      ADMINS: ${ADMINS:-[]}
+      DEBUG_MODE: ${DEBUG_MODE:-False}
+      DB_USED: ${DB_USED:-PostgreSQL}
+      DB_IP: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-telegram_bot}
+      DB_PASSWORD: ${DB_PASSWORD:-telegram_bot}
+      DB_NAME: ${DB_NAME:-telegram_bot}
+      REDIS_USE: ${REDIS_USE:-False}
+      REDIS_IP: redis
+      REDIS_PORT: 6379
+    command: ["uvicorn", "bot.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

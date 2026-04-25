@@ -1,0 +1,127 @@
+[tool.poetry]
+name = "telegram-bot-template"
+version = "0.1.0"
+description = "Aiogram3 bot template"
+authors = ["coderos-life"]
+readme = "README.md"
+license = "MIT"
+keywords = ["aiogram", "telegram-bot", "fastapi", "postgresql", "redis", "template"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+aiogram = "^3.10.0"
+sqlalchemy = "^2.0.23"
+alembic = "^1.13.1"
+pydantic = "^2.7.3"
+pydantic-settings = "^2.3.1"
+cachetools = "^5.3.3"
+redis = "^5.0.5"
+psutil = ">=7.2,<8.0"
+asyncpg = "^0.31.0"
+fastapi = "^0.136.1"
+uvicorn = "^0.46.0"
+greenlet = "^3.4.0"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.8"
+mypy = "^1.10.0"
+pre-commit = "^3.7.1"
+types-psutil = "^7.2.2.20260408"
+types-cachetools = "^6.2.0.20260408"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.2.2"
+pytest-asyncio = "^0.23.7"
+pytest-env = "<1.6"
+pytest-cov = "^7.1.0"
+httpx = "^0.28.1"
+
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+filterwarnings = "ignore::DeprecationWarning"
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "integration: tests that require PostgreSQL or other external services",
+]
+env = [
+    "APP_ENVIRONMENT=test",
+    "BOT_TOKEN=123456:TEST_TOKEN",
+    "PARSE_MODE=HTML",
+    "DROP_PENDING_UPDATES=True",
+    "RATE_LIMIT=0.5",
+    "ADMINS=[1]",
+    "DEBUG_MODE=False",
+    "DB_USED=PostgreSQL",
+    "DB_IP=localhost",
+    "DB_PORT=5432",
+    "DB_USER=postgres",
+    "DB_PASSWORD=postgres",
+    "DB_NAME=telegram_bot_template_test",
+    "REDIS_USE=False",
+    "REDIS_IP=localhost",
+    "REDIS_PORT=6379",
+]
+
+[tool.ruff]
+fix = false
+unsafe-fixes = false
+line-length = 125
+cache-dir = "/tmp/ruff-cache/"
+extend-exclude = ["migrations"]
+lint.select = [
+    "C4",
+    "E",
+    "F",
+    "T10",
+    "T20",
+    "Q",
+    "RET",
+]
+
+
+
+[tool.ruff.lint.isort]
+no-lines-before = ["future", "standard-library"]
+known-local-folder = ["bot", ]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = ["ANN401", "S101", "S311"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+files = "bot/*.py"
+ignore_missing_imports = false
+warn_return_any = true
+warn_unused_configs = true
+show_error_codes = true
+show_error_context = true
+pretty = true
+disallow_subclassing_any = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+follow_imports_for_stubs = true
+namespace_packages = true
+show_absolute_path = true
+
+
+[[tool.mypy.overrides]]
+module = "asyncpg.*"
+ignore_missing_imports = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
