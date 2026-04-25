@@ -8,7 +8,7 @@ from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 
 from bot.config import DEFAULT_TZ, bot, dp
-from bot.database.engine import create_database_custom_functions
+from bot.database.engine import create_database_custom_functions, engine
 from bot.handlers import setup_routers
 from bot.middlewares import setup_middlewares
 from bot.services.test_connection import test_database_pool, test_redis_pool
@@ -41,12 +41,14 @@ async def on_startup(bot: Bot) -> None:
 async def on_shutdown(bot: Bot) -> None:
     logger.info("Bot stopped")
 
-    if not settings.log_chat:
-        return
+    if settings.log_chat:
+        await bot.send_message(
+            settings.log_chat,
+            f"*Exit* _(⏰{datetime.now(DEFAULT_TZ).strftime('%d.%m.%Y %H:%M:%S')})_",
+            parse_mode="Markdown",
+        )
 
-    await bot.send_message(
-        settings.log_chat, f"*Exit* _(⏰{datetime.now(DEFAULT_TZ).strftime('%d.%m.%Y %H:%M:%S')})_", parse_mode="Markdown"
-    )
+    await engine.dispose()
 
 
 async def _main() -> None:
@@ -79,8 +81,10 @@ async def _main() -> None:
     if settings.log_chat:
         logging.getLogger().addHandler(_get_telegram_handler())
 
+    allowed_updates = settings.bot.allowed_updates or dp.resolve_used_update_types()
+
     with contextlib.suppress(KeyboardInterrupt, SystemExit):
-        await dp.start_polling(bot)
+        await dp.start_polling(bot, allowed_updates=allowed_updates)
 
 
 def main() -> None:

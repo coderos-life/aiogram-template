@@ -134,5 +134,4 @@ dmypy.json
 .idea/*
 .omx/
 
-# Other
-migrations/versions/*.py
+# Project migrations are source code and should be committed.

@@ -31,11 +31,11 @@ async def test_database_pool() -> None:
     async with get_repo() as repo:
         start = time.perf_counter()
         info = (await repo.session.execute(text("SELECT version();"))).scalar()
-        ping = round(time.perf_counter() - start, 3)
+        ping_ms = round((time.perf_counter() - start) * 1000, 3)
 
         if isinstance(info, str):
             version = info.split()[1]
         else:
             version = "unknown"
 
-        logger.debug("Successful connected to %s(%s). Ping: %s ms", settings.db.used, version, ping)
+        logger.debug("Successful connected to %s(%s). Ping: %s ms", settings.db.used, version, ping_ms)

@@ -1,12 +1,12 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from alembic import context
-
+from bot.database.models import Base
 from bot.enums.db import Databases
 from bot.settings import settings
 
@@ -25,17 +25,12 @@ if settings.db.used == Databases.PostgreSQL:
 else:
     url = settings.db.build_mysql_url()
 
-config.set_main_option(
-    "sqlalchemy.url",
-    url
-)
+config.set_main_option("sqlalchemy.url", url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-
-from bot.database.models import Base
 
 target_metadata = Base.metadata
 
@@ -70,7 +65,12 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_type=True,
+        compare_server_default=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

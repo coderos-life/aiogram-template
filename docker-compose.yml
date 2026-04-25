@@ -39,6 +39,7 @@ services:
         required: false
     environment:
       APP_NAME: ${APP_NAME:-Aiogram Bot Template}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
       APP_ENVIRONMENT: ${APP_ENVIRONMENT:-local}
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
       BOT_TOKEN: ${BOT_TOKEN:-}
@@ -53,9 +54,17 @@ services:
       DB_USER: ${DB_USER:-telegram_bot}
       DB_PASSWORD: ${DB_PASSWORD:-telegram_bot}
       DB_NAME: ${DB_NAME:-telegram_bot}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-10}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
       REDIS_USE: ${REDIS_USE:-False}
       REDIS_IP: redis
       REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-5}
+      REDIS_SOCKET_CONNECT_TIMEOUT: ${REDIS_SOCKET_CONNECT_TIMEOUT:-5}
+      HEALTHCHECK_TIMEOUT_SECONDS: ${HEALTHCHECK_TIMEOUT_SECONDS:-3}
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +83,7 @@ services:
         required: false
     environment:
       APP_NAME: ${APP_NAME:-Aiogram Bot Template}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
       APP_ENVIRONMENT: ${APP_ENVIRONMENT:-local}
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
       BOT_TOKEN: ${BOT_TOKEN:-}
@@ -88,18 +98,60 @@ services:
       DB_USER: ${DB_USER:-telegram_bot}
       DB_PASSWORD: ${DB_PASSWORD:-telegram_bot}
       DB_NAME: ${DB_NAME:-telegram_bot}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-10}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
       REDIS_USE: ${REDIS_USE:-False}
       REDIS_IP: redis
       REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-5}
+      REDIS_SOCKET_CONNECT_TIMEOUT: ${REDIS_SOCKET_CONNECT_TIMEOUT:-5}
+      HEALTHCHECK_TIMEOUT_SECONDS: ${HEALTHCHECK_TIMEOUT_SECONDS:-3}
     command: ["uvicorn", "bot.api:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
+
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles:
+      - tools
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:-123456:DOCKER_MIGRATOR}
+      DB_USED: ${DB_USED:-PostgreSQL}
+      DB_IP: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-telegram_bot}
+      DB_PASSWORD: ${DB_PASSWORD:-telegram_bot}
+      DB_NAME: ${DB_NAME:-telegram_bot}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   postgres_data:

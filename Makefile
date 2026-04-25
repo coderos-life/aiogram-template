@@ -76,6 +76,10 @@ docker-up: ## Start bot, PostgreSQL and Redis with Docker Compose
 docker-down: ## Stop Docker Compose services
 	@docker compose down
 
+.PHONY: docker-migrate
+docker-migrate: ## Run Alembic migrations in Docker Compose
+	@docker compose --profile tools run --rm migrator
+
 .PHONY: docker-logs
 docker-logs: ## Follow Docker Compose logs
 	@docker compose logs -f

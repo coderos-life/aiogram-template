@@ -2,21 +2,23 @@ import contextlib
 import html
 
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import User, Message
+from aiogram.types import Message
+from aiogram.types import User as AiogramUser
 
 from bot.config import bot
 from bot.database import Repositories
+from bot.database.models import User as DbUser
 
 
-def get_ping_link(user: User) -> str:
+def get_ping_link(user: AiogramUser) -> str:
     return f'<a href="tg://user?id={user.id}">{html.escape(user.full_name)}</a>'
 
 
-def get_openmessage_link(user: User) -> str:
+def get_openmessage_link(user: AiogramUser) -> str:
     return f'<a href="tg://openmessage?user_id={user.id}">{html.escape(user.full_name)}</a>'
 
 
-async def get_user_by_username(repo: Repositories, username: str) -> User | None:
+async def get_user_by_username(repo: Repositories, username: str) -> DbUser | None:
     username = username.replace("@", "").lower()
 
     users = await repo.users.get_users_by_username(username=username)
@@ -36,7 +38,10 @@ async def get_user_by_username(repo: Repositories, username: str) -> User | None
         return None
 
 
-async def user_from_message(repo: Repositories, message: Message, user: User) -> User | None:
+async def user_from_message(repo: Repositories, message: Message, user: AiogramUser) -> DbUser | None:  # noqa: ARG001
+    if message.text is None:
+        return None
+
     args = message.text.split()
 
     if len(args) >= 2:
@@ -52,7 +57,7 @@ async def user_from_message(repo: Repositories, message: Message, user: User) ->
 
         return await repo.users.get(int(arg))
 
-    if message.reply_to_message:
+    if message.reply_to_message and message.reply_to_message.from_user:
         reply_user = message.reply_to_message.from_user.id
         return await repo.users.get_by_user_id(reply_user)
 

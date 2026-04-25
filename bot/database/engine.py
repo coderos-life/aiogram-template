@@ -16,7 +16,16 @@ logger = logging.getLogger("Database")
 URL = settings.db.build_postgres_url() if settings.db.used == Databases.PostgreSQL else settings.db.build_mysql_url()
 
 
-engine = create_async_engine(URL, future=True, pool_pre_ping=True, echo=settings.debug_mode)
+engine = create_async_engine(
+    URL,
+    future=True,
+    pool_pre_ping=True,
+    pool_size=settings.db.pool_size,
+    max_overflow=settings.db.max_overflow,
+    pool_timeout=settings.db.pool_timeout,
+    pool_recycle=settings.db.pool_recycle,
+    echo=settings.debug_mode,
+)
 sessionmaker = async_sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
 
 

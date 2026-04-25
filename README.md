@@ -7,8 +7,9 @@
 - Точка входа aiogram 3 в режиме long polling с роутерами, middleware, фильтрами и клавиатурами.
 - Асинхронные репозитории SQLAlchemy 2, миграции Alembic и подключенный PostgreSQL-драйвер.
 - Опциональное Redis-хранилище для FSM и ограничения частоты запросов.
-- FastAPI-маршруты `/health/live` и `/health/ready` для проверок контейнера и платформы деплоя.
-- Docker Compose стек с ботом, PostgreSQL, Redis и опциональным профилем API-сервиса.
+- FastAPI-маршруты `/health/live` и `/health/ready` с параллельными dependency checks и таймаутами.
+- Настраиваемые SQLAlchemy pool limits, Redis socket timeouts и `allowed_updates` для aiogram polling.
+- Docker Compose стек с ботом, PostgreSQL, Redis, опциональным API-сервисом и one-shot migrator.
 - Ruff, mypy, pytest, pre-commit и workflow для GitHub Actions.
 - Тестовые значения по умолчанию позволяют запускать модульные тесты без локального `.env`; интеграционные тесты пропускаются, если PostgreSQL недоступен.
 
@@ -65,6 +66,12 @@ make docker-up
 docker compose --profile api up -d --build
 ```
 
+Применить миграции внутри Docker Compose:
+
+```bash
+make docker-migrate
+```
+
 Полезные команды:
 
 ```bash
@@ -89,6 +96,16 @@ make migration message="add orders"
 make migrate
 ```
 
+В шаблоне уже есть initial Alembic revision для базовых таблиц `users` и `chats`.
+Новые файлы в `migrations/versions/` считаются исходным кодом и должны попадать в git.
+Тесты проверяют линейность Alembic history и прогон `upgrade head`/`downgrade base`
+на тестовой PostgreSQL базе, когда она доступна.
+
+## Документация
+
+- [Архитектура](docs/architecture.md)
+- [Production-чеклист](docs/production-checklist.md)
+
 ## Структура проекта
 
 ```text
@@ -106,6 +123,9 @@ migrations/                # окружение Alembic и ревизии
 tests/
   unit/
   integration/
+docs/
+  architecture.md
+  production-checklist.md
 ```
 
 ## Конфигурация
@@ -118,7 +138,12 @@ tests/
 - `ADMINS` - список Telegram user IDs в JSON-like формате, например `[111, 222]`.
 - `DB_USED` - по умолчанию `PostgreSQL`. MySQL остаётся поддержанным в коде, но требует добавления `asyncmy`.
 - `DB_IP`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` - настройки подключения к базе данных.
+- `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT`, `DB_POOL_RECYCLE` - параметры пула SQLAlchemy.
 - `REDIS_USE` - установите `True`, чтобы использовать FSM-хранилище на Redis.
+- `REDIS_DB`, `REDIS_SOCKET_TIMEOUT`, `REDIS_SOCKET_CONNECT_TIMEOUT` - параметры Redis connection pool.
+- `HEALTHCHECK_TIMEOUT_SECONDS` - максимальное время одной dependency check в `/health/ready`.
+- `ALLOWED_UPDATES` - опциональный JSON-список update types для polling.
+  Если не задан, aiogram вычисляет список по зарегистрированным routers.
 - `APP_TIMEZONE` - timezone для сообщений логов при запуске и остановке.
 
 ## Заметки по тестам

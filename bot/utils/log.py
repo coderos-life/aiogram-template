@@ -99,7 +99,7 @@ class TelegramHandler(logging.Handler):
         self.install()
 
     def install(self) -> None:
-        self.loop = asyncio.get_event_loop()
+        self.loop = asyncio.get_running_loop()
         self.loop.create_task(self.queue_poller())
 
     async def queue_poller(self) -> None:
@@ -200,6 +200,8 @@ def _get_console_handler() -> StreamHandler[Any]:
 
 
 def init_logger() -> None:
+    LogDir.mkdir(parents=True, exist_ok=True)
+
     logging.getLogger().setLevel(logging.DEBUG)
     logging.getLogger().handlers = []
     logging.getLogger().addHandler(_get_daily_handler())

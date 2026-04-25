@@ -20,6 +20,7 @@ LogDir = Path(ProjectDir) / "logs"
 
 class AppSettings(BaseSettings):
     name: str = "Aiogram Bot Template"
+    version: str = "0.1.0"
     environment: Literal["local", "development", "staging", "production", "test"] = "local"
     timezone: str = "Europe/Moscow"
 
@@ -31,6 +32,7 @@ class BotSettings(BaseSettings):
     parse_mode: Literal["MARKDOWN_V2", "MARKDOWN", "HTML"] = "HTML"
     drop_pending_updates: bool = True
     rate_limit: int | float = 1
+    allowed_updates: list[str] | None = None
 
 
 class DatabaseSettings(BaseSettings):
@@ -42,6 +44,10 @@ class DatabaseSettings(BaseSettings):
     name: str
 
     test_name: str | None = None
+    pool_size: int = 5
+    max_overflow: int = 10
+    pool_timeout: float = 30
+    pool_recycle: int = 1800
 
     model_config = SettingsConfigDict(env_prefix="DB_")
 
@@ -76,23 +82,40 @@ class RedisSettings(BaseSettings):
     use: bool = False
     ip: str = "localhost"
     port: int = 6379
+    db: int = 0
     password: str | None = None
+    socket_timeout: float = 5
+    socket_connect_timeout: float = 5
 
     model_config = SettingsConfigDict(env_prefix="REDIS_")
 
-    def get_redis(self, db: int = 0) -> Redis:
-        return Redis(host=self.ip, port=self.port, password=self.password, db=db)
+    def get_redis(self, db: int | None = None) -> Redis:
+        return Redis(
+            host=self.ip,
+            port=self.port,
+            password=self.password,
+            db=self.db if db is None else db,
+            socket_timeout=self.socket_timeout,
+            socket_connect_timeout=self.socket_connect_timeout,
+        )
+
+
+class HealthcheckSettings(BaseSettings):
+    timeout_seconds: float = 3
+
+    model_config = SettingsConfigDict(env_prefix="HEALTHCHECK_")
 
 
 class Settings(BaseSettings):
     log_chat: int | None = None
-    admins: list[int]
-    debug_mode: bool
+    admins: list[int] = Field(default_factory=list)
+    debug_mode: bool = False
 
     app: AppSettings = Field(default_factory=AppSettings)
     bot: BotSettings = Field(default_factory=BotSettings)
     db: DatabaseSettings = Field(default_factory=DatabaseSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
+    healthcheck: HealthcheckSettings = Field(default_factory=HealthcheckSettings)
 
 
 settings = Settings()
